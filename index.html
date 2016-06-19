@@ -1,0 +1,479 @@
+<!DOCTYPE HTML>
+<!--Author : Simon Xu -->
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, 
+		user-scalable=no, initial-scale=1, maximum-scale=1, user-scalable=0" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+		<style type="text/css">
+			body {margin: 0; padding: 0; background: #000;}
+			canvas {display: block; margin: 0 auto; background: #fff;}
+		</style>		
+	</head>
+	<body>
+		<canvas></canvas>
+		<script>
+			// http://paulirish.com/2011/requestanimationframe-for-smart-animating 
+			// shim layer with setTimeout fallback 
+			window.requestAnimFrame = (function(){ 
+				return  window.requestAnimationFrame       || 
+						window.webkitRequestAnimationFrame || 
+						window.mozRequestAnimationFrame    || 
+						window.oRequestAnimationFrame      || 
+						window.msRequestAnimationFrame     || 
+						function( callback ){ 
+							window.setTimeout(callback, 1000 / 60); 
+						}; 
+			})(); 
+			// namespace our game 
+			var TEA = {
+			// this goes at the start of the program 
+			// to track players’s progress 
+			score: { 
+               hp : 0,
+			   cup : 0
+			}, 
+			hpPics : ["man.png", "80.png", "60.png", "40.png", "20.png", "kong.png"],
+			// Add at the start of the program 
+			// the amount of game ticks until 
+			// we spawn a bubble 
+			timetolevelup : 2500,
+			level : 1,
+			grade : 1,
+			nextBubble: 100,	 
+			gameState: 0,
+			// set up some initial values 
+			WIDTH: 320, 
+			HEIGHT:  480, 
+			// we'll set the rest of these 
+			// in the init function 
+			RATIO:  null, 
+			currentWidth:  null, 
+			currentHeight:  null, 
+			canvas: null, 
+			ctx:  null, 
+			// put this at start of program
+			entities: [],
+			pics : ["chahu2.png","shuidi.png","shuidi2.png","shuidi.png"],
+			// let’s keep track of scale 
+			// along with all initial declarations 
+			// at the start of the program 
+			scale:  1, 
+			// the position of the canvas 
+			// in relation to the screen 
+			offset: {top: 0, left: 0}, 
+			
+			init1: function() {
+			// the proportion of width to height 
+			TEA.RATIO = TEA.WIDTH / TEA.HEIGHT; 
+			// these will change when the screen is resized 
+			TEA.currentWidth = TEA.WIDTH; 
+			TEA.currentHeight = TEA.HEIGHT; 
+			// this is our canvas element 
+			TEA.canvas = document.getElementsByTagName('canvas')[0]; 
+			// setting this is important 
+			// otherwise the browser will 
+			// default to 320 x 200 
+			TEA.canvas.width = TEA.WIDTH; 
+			TEA.canvas.height = TEA.HEIGHT; 
+			// the canvas context enables us to 
+			// interact with the canvas api 
+			TEA.ctx = TEA.canvas.getContext('2d'); 
+			// we're ready to resize 
+			// we need to sniff out Android and iOS 
+			// so that we can hide the address bar in 
+			// our resize function 
+			TEA.ua = navigator.userAgent.toLowerCase(); 
+			TEA.android = TEA.ua.indexOf('android') > -1 ? true : false; 
+			TEA.ios = ( TEA.ua.indexOf('iphone') > -1 || TEA.ua.indexOf('ipad') > -1  ) ? 
+			true : false;
+			TEA.resize(); 
+			// abstracts various canvas operations into 
+			// standalone functions 
+			TEA.Draw = { 
+				clear: function() { 
+					TEA.ctx.clearRect(0, 0, TEA.WIDTH, TEA.HEIGHT); 
+				}, 
+				rect: function(x, y, w, h, col) { 
+					TEA.ctx.fillStyle = col; 
+					TEA.ctx.fillRect(x, y, w, h); 
+				}, 
+				circle: function(x, y, r, col) { 
+					TEA.ctx.fillStyle = col; 
+					TEA.ctx.beginPath(); 
+					TEA.ctx.arc(x + 5, y + 5, r, 0,  Math.PI * 2, true); 
+					TEA.ctx.closePath(); 
+					TEA.ctx.fill(); 
+				}, 
+				text: function(string, x, y, size, col) { 
+					TEA.ctx.font = 'bold '+size+'px Monospace'; 
+					TEA.ctx.fillStyle = col; 
+					TEA.ctx.fillText(string, x, y); 
+				}, 
+				picture: function(img, sx, sy, swidth, sheight){
+					img.onload=function(){  
+    					TEA.ctx.drawImage(img,sx,sy,swidth,sheight);      
+					};  					
+					TEA.ctx.drawImage(img, sx, sy, swidth, sheight);	
+				}
+			}; 
+			var img=new Image();  
+			img.src="fengmianwanzheng.png";  
+			img.onload=function(){  
+    			TEA.ctx.drawImage(img,0,0,TEA.WIDTH,TEA.HEIGHT);      
+			};  
+			TEA.ctx.drawImage(img,0,0,TEA.WIDTH,TEA.HEIGHT);  			
+
+			TEA.Input = { 
+				x: 0, 
+				y: 0, 
+				tapped :false, 
+				set: function(data) { 
+					this.x = (data.pageX - TEA.offset.left) / TEA.scale; 
+					this.y = (data.pageY - TEA.offset.top) / TEA.scale;   
+					this.tapped = true; 
+					// TEA.Draw.circle(this.x, this.y, 10, 'red'); 
+				} 
+			};			
+			// // listen for clicks 
+			window.addEventListener('click', function(e) { 
+				e.preventDefault(); 
+				if(TEA.gameState == 0){
+					TEA.init();
+					TEA.gameState = 1;
+				}
+			    else if(TEA.gameState == 1){
+					TEA.Input.set(e);
+				}
+				else{
+					location.reload(true); 
+					TEA.init1();
+					TEA.gameState = 0;
+				}
+			}, false); 
+			// listen for touches 
+			window.addEventListener('touchstart', function(e) { 
+				e.preventDefault(); 
+				// the event object has an array 
+				// named touches; we just want 
+				// the first touch 
+				if(TEA.gameState == 0){
+					TEA.init();
+					TEA.gameState = 1;
+				}
+				else if(TEA.gameState == 1){
+					TEA.Input.set(e.touches[0]);
+				}
+				else{
+					TEA.init1();
+					TEA.gameState = 0;
+				}
+			}, false); 
+			window.addEventListener('touchmove', function(e) { 
+				// we're not interested in this, 
+				// but prevent default behaviour 
+				// so the screen doesn't scroll 
+				// or zoom 
+				e.preventDefault(); 
+			}, false); 
+			window.addEventListener('touchend', function(e) { 
+				// as above 
+				e.preventDefault(); 
+			}, false); 
+											
+			},
+			init: function() { 
+		    TEA.score.hp = 0;
+			TEA.score.cup = 0;	
+			TEA.Draw.clear();		
+			TEA.TouchCup = function(x, y){
+				this.type = 'touch';
+				this.x = x;
+				this.y = y;
+				this.opacity = 1;
+				this.fade = 0.05;
+				this.remove = false;
+				var imga = new Image();
+				imga.src="chabei2.png";
+				this.img = imga;
+				this.update = function() {
+					this.opacity -= this.fade;
+					this.remove = (this.opacity < 0) ? true : false;
+				}
+				this.render = function() {
+					TEA.Draw.picture(this.img, this.x, this.y , 30, 25);
+				}
+			};
+			TEA.TeaDrop = function() { 
+				this.type = 'bubble'; 
+				this.r = (Math.random() * 10) + 10; 
+				this.hr = this.r * 1.9;
+				this.speed = (Math.random() * 3 * TEA.level ) + 1; 
+				this.x = (TEA.WIDTH) * .05 + (Math.random() * (TEA.WIDTH) * .85 - this.r); 
+				this.y = 0; 
+				// the amount by which the bubble 
+				// will move from side to side 
+				this.waveSize = 13 + this.r * TEA.level; 
+				// we need to remember the original 
+				// x position for our sine wave calculation 
+				this.xConstant = this.x; 
+				this.remove = false; 
+				this.update = function() { 
+					// a sine wave is commonly a function of time 
+					var time = new Date().getTime() * 0.002; 
+					this.y += this.speed; 
+					// the x coordinate to follow a sine wave 
+					this.x = this.waveSize * Math.sin(time) + this.xConstant; 
+					// if off screen, flag for removal 
+					if (this.y > TEA.HEIGHT - 10) { 
+						TEA.score.hp += 1; // update score
+						this.remove = true; 
+					} 
+				}; 
+				this.render = function() { 
+					var imgC=new Image();  
+					imgC.src="chahu2.png";  						
+					imgC.onload=function(){  
+    					TEA.ctx.drawImage(imgC,this.xConstant, 0, 60, 70);      
+					};  
+					TEA.ctx.drawImage(imgC,this.xConstant, 0, 60, 70);  
+					var imgD=new Image();  
+					imgD.src="shuidi.png";  
+					imgD.onload=function(){  
+    					TEA.ctx.drawImage(imgD,this.x, this.y , this.r, this.hr);      
+					};  
+					TEA.ctx.drawImage(imgD,this.x, this.y , this.r, this.hr);  
+					// TEA.Draw.circle(this.x, this.y, this.r, 'rgba(0,0,0,1)'); 
+				}; 
+			};
+			TEA.Particle = function(x, y,r, col) { 
+				this.type = 'particle';
+				this.x = x; 
+				this.y = y; 
+				this.r = r; 
+				this.col = col; 
+				// determines whether particle will 
+				// travel to the right of left 
+				// 50% chance of either happening 
+				this.dir = (Math.random() * 2 > 1) ? 1 : -1; 
+				// random values so particles do not 
+				// travel at the same speeds 
+				this.vx = ~~(Math.random() * 4) * this.dir; 
+				this.vy = ~~(Math.random() * 7); 
+				this.remove = false; 
+				this.update = function() { 
+					// update coordinates 
+					this.x -= this.vx; 
+					this.y -= this.vy; 
+					// increase velocity so particle 
+					// accelerates off screen 
+					this.vx *= 0.99; 
+					this.vy *= 0.99; 
+					// adding this negative amount to the 
+					// y velocity exerts an upward pull on 
+					// the particle, as if drawn to the 
+					// surface 
+					this.vy -= 0.25; 
+					// off screen 
+					if (this.y < 0) { 
+						this.remove = true; 
+					} 
+				}; 
+				this.render = function() { 
+					TEA.Draw.circle(this.x, this.y, this.r, this.col); 
+				}; 
+			};   
+			// this function checks if two circles overlap 
+			TEA.collides = function(a, b) { 
+				var distance_squared = ( ((a.x - b.x) * (a.x - b.x)) + 
+				((a.y - b.y) * (a.y - b.y))); 
+				var radii_squared = (a.r + b.r) * (a.r + b.r); 
+				if (distance_squared < radii_squared) { 
+					return true; 
+				} else { 
+					return false; 
+				} 
+			}; 
+			TEA.loop(); 
+			}, 
+			// Add the following functions after TEA.init: 
+			// this is where all entities will be moved 
+			// and checked for collisions, etc. 
+			update: function() {
+				// update wave offset 
+				// feel free to play with these values for 
+				// either slower or faster waves 
+				// at the start of TEA.update, we set a flag for checking collisions 
+				var i, 
+				checkCollision = false; // we only need to check for a collision 
+				// if the user tapped on this game tick 
+				// and then incorporate into the main logic 
+				if (TEA.Input.tapped) { 
+					// keep track of taps; needed to 
+					// calculate accuracy 
+					TEA.score.taps += 1; 
+					TEA.entities.push(new TEA.TouchCup(TEA.Input.x, TEA.Input.y)); 
+					// set tapped back to false 
+					// to avoid spawning a new touch 
+					// in the next cycle 
+					TEA.Input.tapped = false; 
+					checkCollision = true; 
+				} 
+				// cycle through all entities and update as necessary 
+				for (i = 0; i < TEA.entities.length; i += 1) { 
+					TEA.entities[i].update(); 
+					if (TEA.entities[i].type === 'bubble' && checkCollision) { 
+						hit = TEA.collides(TEA.entities[i], 
+						{x: TEA.Input.x, y: TEA.Input.y, r: 15}); 
+						if (hit) { 
+							// spawn an explosion 
+							for (var n = 0; n < 5; n +=1 ) { 
+								TEA.entities.push(new TEA.Particle( 
+								TEA.entities[i].x, 
+								TEA.entities[i].y, 
+								2, 
+								// random opacity to spice it up a bit 
+								'rgba(0,0,0,'+Math.random()*1+')' 
+								)); 
+							} 
+							TEA.score.cup += 1; 
+						} 
+						TEA.entities[i].remove = hit; 
+					} 
+					// delete from array if remove property 
+					// is set to true 
+					if (TEA.entities[i].remove) { 
+						TEA.entities.splice(i, 1); 
+					} 
+				} 
+				// at the start of TEA.update 
+				// decrease our nextBubble counter 
+				TEA.nextBubble -= 1; 
+				// if the counter is less than zero 
+				if (TEA.nextBubble < 0) { 
+					// put a new instance of bubble into our entities array 
+					TEA.entities.push(new TEA.TeaDrop()); 
+					// reset the counter with a random value 
+					TEA.nextBubble = (( Math.random() * 100 ) + 100)/TEA.level; 
+				}  
+				TEA.timetolevelup -= 1; 
+				if (TEA.timetolevelup < 0) { 					
+					TEA.level += 0.2;  
+					TEA.grade += 1;
+					TEA.timetolevelup = (( Math.random() * 1000 ) + 2500)/TEA.level; 
+				}  
+				// spawn a new instance of Touch 
+				// if the user has tapped the screen 
+				if (TEA.Input.tapped) { 
+				TEA.entities.push(new TEA.TouchCup(TEA.Input.x, TEA.Input.y)); 
+				// set tapped back to false 
+				// to avoid spawning a new touch 
+				// in the next cycle 
+				TEA.Input.tapped = false; 
+				} 
+				// cycle through all entities and update as necessary 
+				for (i = 0; i < TEA.entities.length; i += 1) { 
+					TEA.entities[i].update(); 
+					// delete from array if remove property 
+					// flag is set to true 
+					if (TEA.entities[i].remove) { 
+						TEA.entities.splice(i, 1); 
+					} 
+				}
+
+			}, 
+			// this is where we draw all the entities 
+			render: function() { 
+				TEA.Draw.clear(); 
+				if(TEA.score.hp <= 5){
+					var i; 
+					// TEA.Draw.rect(0, 0, TEA.WIDTH, TEA.HEIGHT, '#036'); 
+					// cycle through all entities and render to canvas 
+					for (i = 0; i < TEA.entities.length; i += 1) { 
+							TEA.entities[i].render();
+					}
+					var img=new Image();  
+					img.src="chabei.png";  
+					img.onload=function(){  
+    					TEA.ctx.drawImage(img,TEA.WIDTH*.67,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);      
+					};  
+					TEA.ctx.drawImage(img,TEA.WIDTH*.67,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);  
+					
+					var img1=new Image();  
+					img1.src=TEA.hpPics[TEA.score.hp];  
+					img1.onload=function(){  
+    					TEA.ctx.drawImage(img1,TEA.WIDTH*.88,TEA.HEIGHT*.7,TEA.WIDTH*.05,TEA.HEIGHT*.2);      
+					};  
+					TEA.ctx.drawImage(img1,TEA.WIDTH*.88,TEA.HEIGHT*.7,TEA.WIDTH*.05,TEA.HEIGHT*.2);
+					// and finally in the draw function 
+					TEA.Draw.text('level: ' + TEA.grade, TEA.WIDTH*.05, TEA.HEIGHT*.97, 22, '#000')
+					TEA.Draw.text('X' + TEA.score.cup, TEA.WIDTH*.82 , TEA.HEIGHT*.97, 24, '#000');
+				
+				} 
+				else{
+					TEA.gameState = 2;
+					var img3=new Image();  
+					img3.src="chabei.png";  
+					img3.onload=function(){  
+    					TEA.ctx.drawImage(img3,TEA.WIDTH*.05,TEA.HEIGHT*.3,TEA.WIDTH*.25,TEA.HEIGHT*.14);      
+					};  
+					TEA.ctx.drawImage(img3,TEA.WIDTH*.05,TEA.HEIGHT*.3,TEA.WIDTH*.25,TEA.HEIGHT*.14);
+					TEA.Draw.text('阁下冲了' + TEA.score.cup + '杯茶', TEA.WIDTH*.36 , TEA.HEIGHT*.41, 24, '#000');  
+					TEA.Draw.text('再来一发？!', TEA.WIDTH*.28, TEA.HEIGHT*.75, 30, '#F00')
+				}
+				// TEA.Draw.text('Escaped: ' + TEA.score.escaped, 20, 50, 14, '#000'); 
+				// TEA.Draw.text('Accuracy: ' + TEA.score.accuracy + '%', 20, 70, 14, '#000');
+				// display snazzy wave effect 
+				// for (i = 0; i < TEA.wave.total; i++) { 
+				// 	TEA.Draw.circle( 
+				// 	TEA.wave.x + TEA.wave.offset +  (i * TEA.wave.r), 
+				// 	TEA.wave.y, 
+				// 	TEA.wave.r, 
+				// 	'#fff'); 
+				// }   
+			}, 
+			// the actual loop 
+			// requests animation frame, 
+			// then proceeds to update 
+			// and render 
+			loop: function() { 
+				requestAnimFrame( TEA.loop ); 
+				TEA.update(); 
+				TEA.render(); 
+			},
+			
+			resize: function() { 
+			TEA.currentHeight = window.innerHeight; 
+			// resize the width in proportion 
+			// to the new height 
+			TEA.currentWidth = TEA.currentHeight * TEA.RATIO; 
+			// this will create some extra space on the 
+			// page, allowing us to scroll past 
+			// the address bar, thus hiding it. 
+			if (TEA.android || TEA.ios) { 
+			document.body.style.height = (window.innerHeight + 50) + 'px'; 
+			} 
+			// set the new canvas style width and height 
+			// note: our canvas is still 320 x 480, but 
+			// we're essentially scaling it with CSS 
+			TEA.canvas.style.width = TEA.currentWidth + 'px'; 
+			TEA.canvas.style.height = TEA.currentHeight + 'px'; 
+			// add this to the resize function. 
+			TEA.scale = TEA.currentWidth / TEA.WIDTH; 
+			TEA.offset.top = TEA.canvas.offsetTop; 
+			TEA.offset.left = TEA.canvas.offsetLeft; 
+			// we use a timeout here because some mobile 
+			// browsers don't fire if there is not 
+			// a short delay 
+			window.setTimeout(function() { 
+			window.scrollTo(0,1); 
+			}, 1); 
+			} 
+			}; 
+			window.addEventListener('load', TEA.init1, false); 
+			window.addEventListener('resize', TEA.resize, false); 
+		</script>			
+	</body>			
+</html>
