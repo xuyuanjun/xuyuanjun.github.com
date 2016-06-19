@@ -35,7 +35,7 @@
                hp : 0,
 			   cup : 0
 			}, 
-			hpPics : ["man.png", "80.png", "60.png", "40.png", "20.png", "kong.png"],
+			hpPics : ["man1.png", "801.png", "601.png", "401.png", "201.png", "kong1.png"],
 			// Add at the start of the program 
 			// the amount of game ticks until 
 			// we spawn a bubble 
@@ -56,7 +56,7 @@
 			ctx:  null, 
 			// put this at start of program
 			entities: [],
-			pics : ["chahu2.png","shuidi.png","shuidi2.png","shuidi.png"],
+			pics : ["chahu21.png","shuidi1.png","shuidi21.png","shuidi1.png"],
 			// let’s keep track of scale 
 			// along with all initial declarations 
 			// at the start of the program 
@@ -120,7 +120,7 @@
 				}
 			}; 
 			var img=new Image();  
-			img.src="fengmianwanzheng.png";  
+			img.src="fengmianwanzheng1.png";  
 			img.onload=function(){  
     			TEA.ctx.drawImage(img,0,0,TEA.WIDTH,TEA.HEIGHT);      
 			};  
@@ -196,7 +196,7 @@
 				this.fade = 0.05;
 				this.remove = false;
 				var imga = new Image();
-				imga.src="chabei2.png";
+				imga.src="chabei21.png";
 				this.img = imga;
 				this.update = function() {
 					this.opacity -= this.fade;
@@ -234,13 +234,13 @@
 				}; 
 				this.render = function() { 
 					var imgC=new Image();  
-					imgC.src="chahu2.png";  						
+					imgC.src="chahu21.png";  						
 					imgC.onload=function(){  
     					TEA.ctx.drawImage(imgC,this.xConstant, 0, 60, 70);      
 					};  
 					TEA.ctx.drawImage(imgC,this.xConstant, 0, 60, 70);  
 					var imgD=new Image();  
-					imgD.src="shuidi.png";  
+					imgD.src="shuidi1.png";  
 					imgD.onload=function(){  
     					TEA.ctx.drawImage(imgD,this.x, this.y , this.r, this.hr);      
 					};  
