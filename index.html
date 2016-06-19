@@ -398,19 +398,19 @@
 					var img=new Image();  
 					img.src="chabei1.png";  
 					img.onload=function(){  
-    					TEA.ctx.drawImage(img,TEA.WIDTH*.67,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);      
+    					TEA.ctx.drawImage(img,TEA.WIDTH*.64,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);      
 					};  
-					TEA.ctx.drawImage(img,TEA.WIDTH*.67,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);  
+					TEA.ctx.drawImage(img,TEA.WIDTH*.64,TEA.HEIGHT*.9,TEA.WIDTH*.15,TEA.HEIGHT*.08);  
 					
 					var img1=new Image();  
 					img1.src=TEA.hpPics[TEA.score.hp];  
 					img1.onload=function(){  
-    					TEA.ctx.drawImage(img1,TEA.WIDTH*.88,TEA.HEIGHT*.7,TEA.WIDTH*.05,TEA.HEIGHT*.2);      
+    					TEA.ctx.drawImage(img1,TEA.WIDTH*.85,TEA.HEIGHT*.7,TEA.WIDTH*.05,TEA.HEIGHT*.2);      
 					};  
 					TEA.ctx.drawImage(img1,TEA.WIDTH*.88,TEA.HEIGHT*.7,TEA.WIDTH*.05,TEA.HEIGHT*.2);
 					// and finally in the draw function 
 					TEA.Draw.text('level: ' + TEA.grade, TEA.WIDTH*.05, TEA.HEIGHT*.97, 22, '#000')
-					TEA.Draw.text('X' + TEA.score.cup, TEA.WIDTH*.82 , TEA.HEIGHT*.97, 24, '#000');
+					TEA.Draw.text('X' + TEA.score.cup, TEA.WIDTH*.79 , TEA.HEIGHT*.97, 24, '#000');
 				
 				} 
 				else{
